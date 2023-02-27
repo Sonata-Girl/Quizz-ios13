@@ -9,23 +9,8 @@ import UIKit
 
 final class ViewController: UIViewController {
     
-    let quiz = [
-        Question(q: "A slug's blood is green.", a: "True"),
-        Question(q: "Approximately one quarter of human bones are in the feet.", a: "True"),
-        Question(q: "The total surface area of two human lungs is approximately 70 square metres.", a: "True"),
-        Question(q: "In West Virginia, USA, if you accidentally hit an animal with your car, you are free to take it home to eat.", a: "True"),
-        Question(q: "In London, UK, if you happen to die in the House of Parliament, you are technically entitled to a state funeral, because the building is considered too sacred a place.", a: "False"),
-        Question(q: "It is illegal to pee in the Ocean in Portugal.", a: "True"),
-        Question(q: "You can lead a cow down stairs but not up stairs.", a: "False"),
-        Question(q: "Google was originally called 'Backrub'.", a: "True"),
-        Question(q: "Buzz Aldrin's mother's maiden name was 'Moon'.", a: "True"),
-        Question(q: "The loudest sound produced by any animal is 188 decibels. That animal is the African Elephant.", a: "False"),
-        Question(q: "No piece of square dry paper can be folded in half more than 7 times.", a: "False"),
-        Question(q: "Chocolate affects a dog's heart and nervous system; a few ounces are enough to kill a small dog.", a: "True")
-        
-    ]
-    
-    var questionNumber = 0
+    var quizBrain = QuizBrain()
+    var buttonsAnswer = [UIButton]()
     
     private var bubbleImageView: UIImageView = {
         var bubbleImageView = UIImageView()
@@ -46,6 +31,15 @@ final class ViewController: UIViewController {
         return stackView
     }()
     
+    private var scoreLabel: UILabel = {
+        var label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .boldSystemFont(ofSize: 20)
+        label.text = "Score:"
+        label.textColor = .white
+        return label
+    }()
+    
     private var questionLabel: UILabel = {
         var label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -56,22 +50,31 @@ final class ViewController: UIViewController {
         return label
     }()
     
-    private var trueButton: UIButton = {
-        var trueButton = UIButton()
-        trueButton.setTitleColor(.white, for: .normal)
-        trueButton.setBackgroundImage(UIImage(named: "Rectangle"), for: .normal)
-        trueButton.translatesAutoresizingMaskIntoConstraints = false
-        trueButton.setTitle("True", for: .normal)
-        return trueButton
+    private var answerButton1: UIButton = {
+        var button = UIButton()
+        button.setTitleColor(.white, for: .normal)
+        button.setBackgroundImage(UIImage(named: "Rectangle"), for: .normal)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("Choise 1", for: .normal)
+        return button
     }()
     
-    private var falseButton: UIButton = {
-        var falseButton = UIButton()
-        falseButton.setTitleColor(.white, for: .normal)
-        falseButton.setBackgroundImage(UIImage(named: "Rectangle"), for: .normal)
-        falseButton.translatesAutoresizingMaskIntoConstraints = false
-        falseButton.setTitle("False", for: .normal)
-        return falseButton
+    private var answerButton2: UIButton = {
+        var button = UIButton()
+        button.setTitleColor(.white, for: .normal)
+        button.setBackgroundImage(UIImage(named: "Rectangle"), for: .normal)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("Choise 2", for: .normal)
+        return button
+    }()
+    
+    private var answerButton3: UIButton = {
+        var button = UIButton()
+        button.setTitleColor(.white, for: .normal)
+        button.setBackgroundImage(UIImage(named: "Rectangle"), for: .normal)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("Choise 3", for: .normal)
+        return button
     }()
     
     private var progressView: UIProgressView = {
@@ -88,8 +91,8 @@ final class ViewController: UIViewController {
         view.backgroundColor = #colorLiteral(red: 0.1019607857, green: 0.2784313858, blue: 0.400000006, alpha: 1)
         
         progressView.progress = 0
-        updateUI()
         setupUI()
+        updateUI()
     }
 
     private func setupUI() {
@@ -110,49 +113,55 @@ final class ViewController: UIViewController {
             stackView.bottomAnchor.constraint(equalTo: view.layoutMarginsGuide.bottomAnchor)
         ])
         
+        stackView.addArrangedSubview(scoreLabel)
         stackView.addArrangedSubview(questionLabel)
-        stackView.addArrangedSubview(trueButton)
-        stackView.addArrangedSubview(falseButton)
+        stackView.addArrangedSubview(answerButton1)
+        stackView.addArrangedSubview(answerButton2)
+        stackView.addArrangedSubview(answerButton3)
         stackView.addArrangedSubview(progressView)
         NSLayoutConstraint.activate([
-            trueButton.heightAnchor.constraint(equalToConstant: 80),
-            falseButton.heightAnchor.constraint(equalToConstant: 80),
+            scoreLabel.heightAnchor.constraint(equalToConstant: 20),
+            answerButton1.heightAnchor.constraint(equalToConstant: 80),
+            answerButton2.heightAnchor.constraint(equalToConstant: 80),
+            answerButton3.heightAnchor.constraint(equalToConstant: 80),
             progressView.heightAnchor.constraint(equalToConstant: 10)
         ])
         
-        trueButton.addTarget(self, action: #selector(answerButtonPressed), for: .touchUpInside)
-        falseButton.addTarget(self, action: #selector(answerButtonPressed), for: .touchUpInside)
+        answerButton1.addTarget(self, action: #selector(answerButtonPressed), for: .touchUpInside)
+        answerButton2.addTarget(self, action: #selector(answerButtonPressed), for: .touchUpInside)
+        answerButton3.addTarget(self, action: #selector(answerButtonPressed), for: .touchUpInside)
         
+        buttonsAnswer += [answerButton1, answerButton2, answerButton3]
     }
     
     @objc private func answerButtonPressed(_ sender: UIButton) {
         
-        let userAnswer = sender.currentTitle // true, false
-        let actualQuestion = quiz[questionNumber]
-        let actualAnswer = actualQuestion.answer
-       
-        if userAnswer == actualAnswer {
-            sender.backgroundColor = .green
-        } else {
-            sender.backgroundColor = .red
-        }
+        let userAnswer = sender.currentTitle! // true, false
+        let userGotItRight = quizBrain.checkAnswer(userAnswer)
         
-        if questionNumber == quiz.count - 1 {
-            questionNumber = 0
-        } else {
-            questionNumber += 1
+        sender.backgroundColor =  userGotItRight ? .green : .red
+       
+        quizBrain.nextQueston()
+        
+        for (index, button) in buttonsAnswer.enumerated() {
+            button.setTitle(quizBrain.getAnswerForQuestion(at: index), for: .normal)
         }
         
         Timer.scheduledTimer(timeInterval: 0.2, target: self, selector: #selector(updateUI), userInfo: nil, repeats: false)
     }
 
     @objc private func updateUI() {
-        questionLabel.text = quiz[questionNumber].text
-
-        trueButton.backgroundColor = .clear
-        falseButton.backgroundColor = .clear
+        questionLabel.text = quizBrain.getQuestionText()
+        progressView.progress = quizBrain.getProgress()
+        scoreLabel.text = "Score: \(quizBrain.getScore())"
+        for (index, button) in buttonsAnswer.enumerated() {
+            button.setTitle(quizBrain.getAnswerForQuestion(at: index), for: .normal)
+        }
         
-        progressView.progress = Float(questionNumber) / Float(quiz.count - 1)
+        answerButton1.backgroundColor = .clear
+        answerButton2.backgroundColor = .clear
+        answerButton3.backgroundColor = .clear
+        
     }
 }
 
